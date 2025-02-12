@@ -1,22 +1,17 @@
 import os
 import torch
+import argparse
 
-from utils import load_audio, extract_audio_features
 from models import JamburSpeakerId
+from speaker_embedding_manager import get_embedding, scan_embeddings_best_match
+from model_manager import load_embedding_model, load_speaker_id_model
 
 if __name__ == "__main__":
-    INPUT_DIM = 13
-    EMBEDDING_DIM = 128
-    NUM_CLASSES = 40
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    audio, sr = load_audio(f'{os.getcwd()}/test.wav')
-    audio_features = extract_audio_features(audio, sr)
-    audio_features = torch.from_numpy(audio_features).to(device).unsqueeze(dim=0)
+    parser = argparse.ArgumentParser(description='Create a voice embedding from an audio file.')
+    parser.add_argument('--audio_file', type=str, default=f'{os.getcwd()}/test.wav', help='the source audio file')
+    parser.add_argument('--device', type=str, default="cuda" if torch.cuda.is_available() else "cpu", help='the device to use')
+    args = parser.parse_args()
 
-    model = JamburSpeakerId(INPUT_DIM, EMBEDDING_DIM, NUM_CLASSES).to(device)
-    
-    model.eval()
-    with torch.inference_mode():
-        print("audio features shape", audio_features.shape)
-        embeddings = model.embedding(audio_features)
-        print("embeddings output shape", embeddings.shape)
+    model = load_speaker_id_model(None).embedding.to(args.device)
+    match_embeddings = get_embedding(args.audio_file, model, args.device).cpu()
+    scan_embeddings_best_match(match_embeddings, True)
