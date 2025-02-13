@@ -20,3 +20,8 @@ def load_audio_features(file_path: str) -> torch.Tensor:
     audio_features = extract_audio_features(audio, sr)
     audio_features = torch.from_numpy(audio_features).unsqueeze(dim=0)
     return audio_features
+
+def accuracy(truth, preds):
+    correct = torch.eq(truth, preds).sum().item()
+    acc = (correct/len(preds)) * 100
+    return  acc
