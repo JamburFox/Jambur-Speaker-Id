@@ -6,7 +6,7 @@ from models import JamburSpeakerId, AudioEmbedding
 INPUT_DIM = 13
 EMBEDDING_DIM = 128
 NUM_CLASSES = 40
-SAVE_PATH = f"{os.getcwd()}/models"
+SAVE_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/models"
 DEFAULT_MODEL_PATH = f"{SAVE_PATH}/jambur_speaker_id.pt"
 DEFAULT_EMBEDDING_PATH = f"{SAVE_PATH}/jambur_speaker_id_e.pt"
 

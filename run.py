@@ -7,7 +7,7 @@ from model_manager import load_embedding_model
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Create a voice embedding from an audio file.')
-    parser.add_argument('--audio_file', type=str, default=f'{os.getcwd()}/test.wav', help='the source audio file')
+    parser.add_argument('--audio_file', type=str, default=f'{os.path.dirname(os.path.abspath(__file__))}/test.wav', help='the source audio file')
     parser.add_argument('--device', type=str, default="cuda" if torch.cuda.is_available() else "cpu", help='the device to use')
     args = parser.parse_args()
 

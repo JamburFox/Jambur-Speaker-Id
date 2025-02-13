@@ -15,7 +15,7 @@ def get_embedding(audio_file: str, model: AudioEmbedding, device: str) -> torch.
 
 #save under ./embeddings/speaker_id/embedding.npy
 def save_new_voice_embedding(speaker_id: str, audio_file: str, save_name: str, model: AudioEmbedding, device: str):
-    save_path = f"{os.getcwd()}/embeddings/{speaker_id}"
+    save_path = f"{os.path.dirname(os.path.abspath(__file__))}/embeddings/{speaker_id}"
 
     os.makedirs(save_path, exist_ok=True)
     embeddings = get_embedding(audio_file, model, device)
@@ -27,7 +27,7 @@ def load_voice_embedding(embedding_path: str):
     return embedding
 
 def get_speaker_id_dirs() -> list:
-    embeddings_path = f"{os.getcwd()}/embeddings"
+    embeddings_path = f"{os.path.dirname(os.path.abspath(__file__))}/embeddings"
     dirs = []
     try:
         with os.scandir(embeddings_path) as entries:
