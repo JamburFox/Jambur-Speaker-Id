@@ -14,10 +14,19 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda" if torch.cuda.is_available() else "cpu", help='the device to use')
     args = parser.parse_args()
 
-    save_name = os.path.splitext(os.path.basename(args.audio_file))[0]
-
     model = load_embedding_model().to(args.device)
-    save_new_voice_embedding(args.speaker_id, args.audio_file, save_name, model, args.device)
 
+    if os.path.isfile(args.audio_file):
+        save_name = os.path.splitext(os.path.basename(args.audio_file))[0]
+        save_new_voice_embedding(args.speaker_id, args.audio_file, save_name, model, args.device)
+    elif os.path.isdir(args.audio_file):
+        with os.scandir(args.audio_file) as entries:
+            for entry in entries:
+                if entry.is_file():
+                    try:
+                        save_name = entry.name.split(".")[0]
+                        save_new_voice_embedding(args.speaker_id, entry.path, save_name, model, args.device)
+                    except:
+                        print(f"Failed to load {entry.name}!")
 
 

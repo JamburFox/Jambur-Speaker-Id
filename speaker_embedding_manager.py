@@ -2,14 +2,14 @@ import os
 import torch
 import numpy as np
 
-from model_manager import load_speaker_id_model
-from utils import load_audio_features
+from utils import load_audio_features, extract_audio_features, load_audio
 from models import AudioEmbedding
 
-def get_embedding(audio_file: str, model: AudioEmbedding, device: str) -> torch.Tensor:
+def get_embedding(audio: np.ndarray, sample_rate: int, model: AudioEmbedding, device: str) -> torch.Tensor:
     model.eval()
     with torch.inference_mode():
-        audio_features = load_audio_features(audio_file).to(device)
+        audio_features = extract_audio_features(audio, sample_rate)
+        audio_features = torch.from_numpy(audio_features).unsqueeze(dim=0).to(device)
         embeddings = model(audio_features)
     return embeddings
 
@@ -18,7 +18,8 @@ def save_new_voice_embedding(speaker_id: str, audio_file: str, save_name: str, m
     save_path = f"{os.path.dirname(os.path.abspath(__file__))}/embeddings/{speaker_id}"
 
     os.makedirs(save_path, exist_ok=True)
-    embeddings = get_embedding(audio_file, model, device)
+    audio, sr = load_audio(audio_file)
+    embeddings = get_embedding(audio, sr, model, device)
     embeddings_np = embeddings.cpu().numpy()
     np.save(f"{save_path}/{save_name}.npy", embeddings_np)
 
@@ -49,11 +50,11 @@ def get_speaker_id_files(speaker_id_path: str) -> list:
         print("Unable to load speaker embedding files")
     return embedding_files
 
-def compare_embeddings(embedding_1: torch.tensor, embedding_2: torch.tensor) -> float:
+def compare_embeddings(embedding_1: torch.Tensor, embedding_2: torch.Tensor) -> float:
     difference = torch.sum(torch.abs(embedding_1 - embedding_2))
     return difference.item()
 
-def scan_embeddings_best_match(match_embedding: torch.tensor, log: bool=False):
+def scan_embeddings_best_match(match_embedding: torch.Tensor, log: bool=False) -> str:
     best_score = 0
     best_speaker_id = None
 
@@ -73,3 +74,4 @@ def scan_embeddings_best_match(match_embedding: torch.tensor, log: bool=False):
                 best_speaker_id = dir.name
     if log:
         print("Best speaker match:", best_speaker_id)
+    return best_speaker_id

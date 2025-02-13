@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import argparse
 
 from models import JamburSpeakerId
 from model_manager import load_speaker_id_model, save_speaker_id_model, save_embedding_model
@@ -59,22 +60,24 @@ def test_step(data_loader: torch.utils.data.DataLoader, model: JamburSpeakerId, 
     return avg_loss, avg_accuracy
 
 if __name__ == "__main__":
-    EPOCHS = 10
-    BATCH_SIZE = 32
-    LEARNING_RATE = 1e-3
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    parser = argparse.ArgumentParser(description='Train the speaker id model.')
+    parser.add_argument('--epochs', type=int, default=10, help='number of epochs')
+    parser.add_argument('--batch_size', type=int, default=32, help='batch size')
+    parser.add_argument('--learning_rate', type=float, default=1e-3, help='learning rate')
+    parser.add_argument('--device', type=str, default="cuda" if torch.cuda.is_available() else "cpu", help='the device to use')
+    args = parser.parse_args()
 
-    model = load_speaker_id_model().to(device)
+    model = load_speaker_id_model().to(args.device)
     criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=LEARNING_RATE)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
 
-    train_loader, test_loader = get_data_loaders('./dataset', BATCH_SIZE, 0.2)
+    train_loader, test_loader = get_data_loaders('./dataset', args.batch_size, 0.2)
     print(f"Train Size: {len(train_loader)} | test Size: {len(test_loader)}")
 
-    for epoch in range(0, EPOCHS):
-        train_loss = train_step(train_loader, model, criterion, optimizer, device)
-        test_loss, test_accuracy = test_step(test_loader, model, criterion, device)
-        print(f"=== Epoch: {epoch+1} / {EPOCHS} | Train_loss: {train_loss:.4f} | Test Loss: {test_loss:.4f} | Test Accuracy: {test_accuracy:.4f}% ===")
+    for epoch in range(0, args.epochs):
+        train_loss = train_step(train_loader, model, criterion, optimizer, args.device)
+        test_loss, test_accuracy = test_step(test_loader, model, criterion, args.device)
+        print(f"=== Epoch: {epoch+1} / {args.epochs} | Train_loss: {train_loss:.4f} | Test Loss: {test_loss:.4f} | Test Accuracy: {test_accuracy:.4f}% ===")
         save_speaker_id_model(model)
         save_embedding_model(model)
 
