@@ -2,12 +2,14 @@ import torch
 import torch.nn as nn
 import argparse
 
-from models import JamburSpeakerId
-from model_manager import load_speaker_id_model, save_speaker_id_model, save_embedding_model
-from models import JamburSpeakerId
+from jambur_speaker_id.model import JamburSpeakerId
+from jambur_speaker_id.model_manager import load_speaker_id_model, save_speaker_id_model, save_embedding_model
 from dataloader import get_data_loaders
-from utils import accuracy
 
+def accuracy(truth, preds):
+    correct = torch.eq(truth, preds).sum().item()
+    acc = (correct/len(preds)) * 100
+    return  acc
 
 def train_step(data_loader: torch.utils.data.DataLoader, model: JamburSpeakerId, criterion: nn.CrossEntropyLoss, optimizer: torch.optim.Optimizer, device: str):
     running_loss = 0

@@ -2,9 +2,9 @@ import os
 import torch
 import numpy as np
 
-from models import JamburSpeakerId, AudioEmbedding
-from speaker_embedding_manager import get_embedding, scan_embeddings_best_match
-from utils import load_audio
+from .model import JamburSpeakerId, AudioEmbedding
+from .speaker_embedding_manager import get_embedding, scan_embeddings_best_match
+from .utils import load_audio
 
 INPUT_DIM = 13
 EMBEDDING_DIM = 128

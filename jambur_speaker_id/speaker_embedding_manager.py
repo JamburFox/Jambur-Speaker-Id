@@ -2,8 +2,8 @@ import os
 import torch
 import numpy as np
 
-from utils import load_audio_features, extract_audio_features, load_audio
-from models import AudioEmbedding
+from .utils import load_audio_features, extract_audio_features, load_audio
+from .model import AudioEmbedding
 
 def get_embedding(audio: np.ndarray, sample_rate: int, model: AudioEmbedding, device: str) -> torch.Tensor:
     model.eval()

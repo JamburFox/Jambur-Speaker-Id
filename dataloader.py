@@ -1,10 +1,9 @@
-from torch.utils.data import Dataset, DataLoader, random_split, Subset
+from torch.utils.data import Dataset, DataLoader, random_split
 import csv
 import numpy as np
 import torch
-import random
 
-from utils import load_audio, extract_audio_features
+from jambur_speaker_id.utils import load_audio, extract_audio_features
 
 class AudioDataset(Dataset):
     def __init__(self, directory: str):

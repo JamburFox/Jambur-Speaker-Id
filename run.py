@@ -3,7 +3,7 @@ import torch
 import argparse
 import numpy as np
 
-from model_manager import load_embedding_model, run_model_file
+from jambur_speaker_id.model_manager import load_embedding_model, run_model_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run the speaker id model.')

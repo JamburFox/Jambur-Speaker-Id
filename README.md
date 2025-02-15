@@ -12,10 +12,10 @@ We can do this by running the command `python create_voice_embedding.py --speake
 After that we can run the command `python run.py --audio_file ./test.wav` where "./test.wav" can be replaced with the location of the audio file you want to check, this will output the closest matching speaker id to that voice.
 
 # Python
-If you want to run this within a python Project you can simply import "load_embedding_model" and "run_model_file" or "run_model_audio" from "model_manager" and use these functions to run the model.
+To use this package within another python project copy the "jambur_speaker_id" folder into the directory of your existing project. Then you can simply import "load_embedding_model" and "run_model_file" or "run_model_audio" from "jambur_speaker_id.model_manager" and use these functions to run the model.
 
 ```python
-from model_manager import load_embedding_model, run_model_file, run_model_audio #import files
+from jambur_speaker_id.model_manager import load_embedding_model, run_model_file, run_model_audio #import files
 
 device = "cpu" # can replace cpu with cuda to run on gpu or any other pytorch supported device
 model = load_embedding_model().to(device) # load model

@@ -4,8 +4,8 @@ import torch
 import torch.nn as nn
 import argparse
 
-from speaker_embedding_manager import save_new_voice_embedding
-from model_manager import load_embedding_model
+from jambur_speaker_id.speaker_embedding_manager import save_new_voice_embedding
+from jambur_speaker_id.model_manager import load_embedding_model
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Create a voice embedding from an audio file.')
