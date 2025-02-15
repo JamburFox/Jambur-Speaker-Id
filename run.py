@@ -12,4 +12,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model = load_embedding_model().to(args.device)
-    run_model_file(model, args.audio_file, args.device)
+    run_model_file(model, args.audio_file, args.device, True)

@@ -13,13 +13,13 @@ SAVE_PATH = f"{os.path.dirname(os.path.abspath(__file__))}/models"
 DEFAULT_MODEL_PATH = f"{SAVE_PATH}/jambur_speaker_id.pt"
 DEFAULT_EMBEDDING_PATH = f"{SAVE_PATH}/jambur_speaker_id_e.pt"
 
-def run_model_audio(model: AudioEmbedding, audio: np.ndarray, sample_rate: int, device: str) -> str:
+def run_model_audio(model: AudioEmbedding, audio: np.ndarray, sample_rate: int, device: str, log_output: bool=False) -> str:
     embeddings = get_embedding(audio, sample_rate, model, device).cpu()
-    return scan_embeddings_best_match(embeddings, True)
+    return scan_embeddings_best_match(embeddings, log_output)
 
-def run_model_file(model: AudioEmbedding, audio_file: str, device: str):
+def run_model_file(model: AudioEmbedding, audio_file: str, device: str, log_output: bool=False) -> str:
     audio, sr = load_audio(audio_file)
-    return run_model_audio(model, audio, sr, device)
+    return run_model_audio(model, audio, sr, device, log_output)
 
 def load_speaker_id_model(file_path: str = DEFAULT_MODEL_PATH) -> JamburSpeakerId:
     model = JamburSpeakerId(INPUT_DIM, EMBEDDING_DIM, NUM_CLASSES)

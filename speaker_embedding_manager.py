@@ -54,24 +54,24 @@ def compare_embeddings(embedding_1: torch.Tensor, embedding_2: torch.Tensor) -> 
     difference = torch.sum(torch.abs(embedding_1 - embedding_2))
     return difference.item()
 
-def scan_embeddings_best_match(match_embedding: torch.Tensor, log: bool=False) -> str:
+def scan_embeddings_best_match(match_embedding: torch.Tensor, log_output: bool=False) -> str:
     best_score = 0
     best_speaker_id = None
 
     dirs = get_speaker_id_dirs()
     for dir in dirs:
-        if log:
+        if log_output:
             print(f"==={dir.name}===")
         files = get_speaker_id_files(dir.path)
         for file in files:
             embedding = load_voice_embedding(file.path)
             diff = compare_embeddings(match_embedding, embedding)
-            if log:
+            if log_output:
                 print("-", file.name, "|", diff)
 
             if best_speaker_id == None or diff <= best_score:
                 best_score = diff
                 best_speaker_id = dir.name
-    if log:
+    if log_output:
         print("Best speaker match:", best_speaker_id)
     return best_speaker_id
