@@ -1,11 +1,12 @@
 import os
 import torch
 import numpy as np
+import torch.nn.functional as F
 
 from .utils import load_audio_features, extract_audio_features, load_audio
-from .model import AudioEmbedding
+from .model import SpeakerIdEmbedding
 
-def get_embedding(audio: np.ndarray, sample_rate: int, model: AudioEmbedding, device: str) -> torch.Tensor:
+def get_embedding(audio: np.ndarray, sample_rate: int, model: SpeakerIdEmbedding, device: str) -> torch.Tensor:
     model.eval()
     with torch.inference_mode():
         audio_features = extract_audio_features(audio, sample_rate)
@@ -14,7 +15,7 @@ def get_embedding(audio: np.ndarray, sample_rate: int, model: AudioEmbedding, de
     return embeddings
 
 #save under ./embeddings/speaker_id/embedding.npy
-def save_new_voice_embedding(speaker_id: str, audio_file: str, save_name: str, model: AudioEmbedding, device: str):
+def save_new_voice_embedding(speaker_id: str, audio_file: str, save_name: str, model: SpeakerIdEmbedding, device: str):
     save_path = f"{os.path.dirname(os.path.abspath(__file__))}/embeddings/{speaker_id}"
 
     os.makedirs(save_path, exist_ok=True)
@@ -54,6 +55,13 @@ def compare_embeddings(embedding_1: torch.Tensor, embedding_2: torch.Tensor) -> 
     difference = torch.sum(torch.abs(embedding_1 - embedding_2))
     return difference.item()
 
+def compare_embeddings_cosine(embedding_1: torch.Tensor, embedding_2: torch.Tensor) -> float:
+    query_norm = F.normalize(embedding_1, dim=1)
+    reference_norms = F.normalize(embedding_2, dim=1)
+
+    similarities = torch.mm(reference_norms, query_norm.t()).squeeze()
+    return similarities
+
 def scan_embeddings_best_match(match_embedding: torch.Tensor, log_output: bool=False) -> str:
     best_score = 0
     best_speaker_id = None
@@ -65,11 +73,11 @@ def scan_embeddings_best_match(match_embedding: torch.Tensor, log_output: bool=F
         files = get_speaker_id_files(dir.path)
         for file in files:
             embedding = load_voice_embedding(file.path)
-            diff = compare_embeddings(match_embedding, embedding)
+            diff = compare_embeddings_cosine(match_embedding, embedding)
             if log_output:
                 print("-", file.name, "|", diff)
 
-            if best_speaker_id == None or diff <= best_score:
+            if best_speaker_id == None or diff > best_score:#<= if using compare_embeddings
                 best_score = diff
                 best_speaker_id = dir.name
     if log_output:

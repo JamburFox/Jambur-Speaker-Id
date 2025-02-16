@@ -49,6 +49,8 @@ run `python train.py --epochs 10 --batch_size 32 --learning_rate 1e-3`
 - `--epochs` number of epochs to train for
 - `--batch_size` the batch size
 - `--learning_rate` the learning rate
+- `--scheduler_step` the number of epochs before multiplying learning rate by gamma
+- `--scheduler_gamma` the amount to multiply the learning rate by upon x scheduler steps (e.x. 0.1 * 0.5 = 0.05)
 - `--device` the device to use (this variable is automatically set but can be overridden)
 
 ### Dataset

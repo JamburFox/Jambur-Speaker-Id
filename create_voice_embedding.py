@@ -5,7 +5,7 @@ import torch.nn as nn
 import argparse
 
 from jambur_speaker_id.speaker_embedding_manager import save_new_voice_embedding
-from jambur_speaker_id.model_manager import load_embedding_model
+from jambur_speaker_id.model_manager import load_speaker_id_model
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Create a voice embedding from an audio file.')
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda" if torch.cuda.is_available() else "cpu", help='the device to use')
     args = parser.parse_args()
 
-    model = load_embedding_model().to(args.device)
+    model = load_speaker_id_model().to(args.device)
 
     if os.path.isfile(args.audio_file):
         save_name = os.path.splitext(os.path.basename(args.audio_file))[0]

@@ -175,3 +175,4 @@ cython_debug/
 # saved embeddings and dataset
 embeddings/
 dataset/
+speaker_files/
