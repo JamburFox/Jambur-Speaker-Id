@@ -3,7 +3,7 @@ import torch
 import numpy as np
 import torch.nn.functional as F
 
-from .utils import load_audio_features, extract_audio_features, load_audio
+from .utils import extract_audio_features, load_audio
 from .model import JamburSpeakerId
 
 def get_embedding(audio: np.ndarray, sample_rate: int, model: JamburSpeakerId, device: str) -> torch.Tensor:
@@ -80,6 +80,4 @@ def scan_embeddings_best_match(match_embedding: torch.Tensor, log_output: bool=F
             if best_speaker_id == None or diff > best_score:#<= if using compare_embeddings
                 best_score = diff
                 best_speaker_id = dir.name
-    if log_output:
-        print("Best speaker match:", best_speaker_id)
     return best_speaker_id

@@ -48,6 +48,12 @@ class PositionwiseFeedForward(nn.Module):
 class JamburSpeakerId(nn.Module):
     def __init__(self, input_dim: int, embedding_dim: int, attention_dim: int, num_attention_heads: int, lstm_hidden_size: int, lstm_num_layers: int):
         super().__init__()
+        self.input_dim = input_dim
+        self.embedding_dim = embedding_dim
+        self.attention_dim = attention_dim
+        self.num_attention_heads = num_attention_heads
+        self.lstm_hidden_size = lstm_hidden_size
+        self.lstm_num_layers = lstm_num_layers
 
         self.cnn_network = nn.Sequential(
             nn.Conv2d(in_channels=input_dim, out_channels=16, kernel_size=(3,3), stride=1, padding=(1,1)),
