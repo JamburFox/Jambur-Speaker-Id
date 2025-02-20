@@ -8,12 +8,12 @@ from .speaker_embedding_manager import get_embedding, scan_embeddings_best_match
 from .utils import load_audio
 
 #, lstm_hidden_size: int = 256, num_lstm_layers: int = 2
-INPUT_DIM = 13
-EMBEDDING_DIM = 256
-ATTENTION_DIM = 16
-NUM_ATTENTION_HEADS = 4
-LSTM_HIDDEN_SIZE = 32
-LSTM_NUM_LAYERS = 2
+DEFAULT_INPUT_DIM = 13
+DEFAULT_EMBEDDING_DIM = 256
+DEFAULT_ATTENTION_DIM = 16
+DEFAULT_NUM_ATTENTION_HEADS = 4
+DEFAULT_LSTM_HIDDEN_SIZE = 32
+DEFAULT_LSTM_NUM_LAYERS = 2
 SAVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 DEFAULT_MODEL_PATH = os.path.join(SAVE_PATH, "jambur_speaker_id.pt")
 
@@ -26,7 +26,22 @@ def run_model_file(model: JamburSpeakerId, audio_file: str, device: str, log_out
     return run_model_audio(model, audio, sr, device, log_output)
 
 def load_speaker_id_model(file_path: str = DEFAULT_MODEL_PATH) -> JamburSpeakerId:
-    model = JamburSpeakerId(INPUT_DIM, EMBEDDING_DIM, ATTENTION_DIM, NUM_ATTENTION_HEADS, LSTM_HIDDEN_SIZE, LSTM_NUM_LAYERS)
+    try:
+        (file_name, _) = os.path.splitext(os.path.basename(file_path))
+        with open(os.path.join(os.path.dirname(file_path), f'{file_name}.json'), 'r') as file:
+            data = json.load(file)
+    except:
+        print("Unable to load .json from: Instantiating with defualt values!")
+        data = {}
+
+    input_dim = data.get('input_dim', DEFAULT_INPUT_DIM)
+    embedding_dim = data.get('embedding_dim', DEFAULT_EMBEDDING_DIM)
+    attention_dim = data.get('attention_dim', DEFAULT_ATTENTION_DIM)
+    num_attention_heads = data.get('num_attention_heads', DEFAULT_NUM_ATTENTION_HEADS)
+    lstm_hidden_size = data.get('lstm_hidden_size', DEFAULT_LSTM_HIDDEN_SIZE)
+    lstm_num_layers = data.get('lstm_num_layers', DEFAULT_LSTM_NUM_LAYERS)
+
+    model = JamburSpeakerId(input_dim, embedding_dim, attention_dim, num_attention_heads, lstm_hidden_size, lstm_num_layers)
     if file_path is not None:
         try:
             model.load_state_dict(torch.load(f=file_path))

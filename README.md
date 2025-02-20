@@ -75,7 +75,6 @@ and the corrosponding audio file should be in the audio folder
 - Save multiple embeddings under a single .npy file to reduce loading time.
 - When running the project, compare multiple embeddings under a single operation similar to whats done in train.py (compare_embeddings_cosine()) to increase efficiency and get the highest similarities from the result along with its corrsponding indexed speaker as the outcome.
 - When creating new embeddings with multiple files from a folder, batch these files together and infer them all at once on the model. This will have a batch limit variable so that if there are more files than the limit it will run under multiple batches e.x. if the limit is 16, 30 files would be batched as 16 and 14.
-- Model parameters will automatically adjust to specified model using the .json metadata file
 - When running the project add a threshold variable so that if no embedding comparison has reached this threshold then return an unknown speaker.
 - Add dynamic embedding saving: "run_model_dynamic_fill(audio_file: str, speaker: str, total_embeddings: int)" This will run the model as normal returning the speaker id but will also automatically expand the embedding list of that speaker if the amount of embeddings that speaker has is below a certain amount. If this embedding is an unknown speaker it will automatically create a new speaker and save the embedding.
 If the total embeddings after saving is above the total_embeddings variable it will automatically delete the embedding which has the lowest similarity score to the saved one.
