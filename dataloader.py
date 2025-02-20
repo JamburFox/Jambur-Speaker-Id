@@ -2,7 +2,7 @@ from torch.utils.data import Dataset, DataLoader, random_split
 import csv
 import numpy as np
 import torch
-import random
+import os
 
 from jambur_speaker_id.utils import load_audio, extract_audio_features
 
@@ -12,72 +12,82 @@ class AudioDataset(Dataset):
         self.audio_files = []
         self.audio_labels = []
 
-        self.label_to_indices = {}#maps speaker labels to audio file indicies
-        self.unique_labels = []#each unique label the map has
+        self.label_to_indices = {}
+        self.unique_labels = []
 
-        with open(f"{directory}/speakers.csv", newline='') as file:
+        print("Loading Dataset...", end="\r")
+        with open(os.path.join(directory, "speakers.csv"), newline='') as file:
             reader = csv.reader(file, delimiter=',')
             for i, row in enumerate(reader):
+                print(f"Loading Dataset... ({i})", end="\r")
                 file_name = str(row[0])
                 label = int(row[1])
-                self.audio_files.append(file_name)
+
+                self.audio_files.append(os.path.join(self.directory, "audio", file_name))
                 self.audio_labels.append(label)
 
                 if label not in self.label_to_indices:
                     self.label_to_indices[label] = []
                 self.label_to_indices[label].append(i)
+        print("")
 
-        self.unique_labels = list(self.label_to_indices.keys())
+        #remove labels with less than 2 elements
+        self.label_to_indices = {key: val for key, val in self.label_to_indices.items() if len(val) >= 2}
+        self.unique_labels = np.array(list(self.label_to_indices.keys()))#make np array of unique labels
+
+        print("Done Loading!")
+
 
     def __len__(self):
-        return len(self.audio_files)
+        return len(self.audio_labels)
     
     def __getitem__(self, index: int):
-        use_same_speaker = random.random() <= 0.5
-        if use_same_speaker:
-            label = np.random.choice(self.unique_labels)
-            indices = self.label_to_indices[label]
+        label = self.audio_labels[index]
+        negative_label = self.select_random_label_excluding_current_np(self.unique_labels, label)
 
-            if len(indices) < 2:
-                return self.__getitem__(index)# if there isnt enough samples for this index try again
-            
-            index1, index2 = np.random.choice(indices, 2, replace=False)
-        else:
-            label1, label2 = np.random.choice(self.unique_labels, 2, replace=False)
-            index1 = np.random.choice(self.label_to_indices[label1])
-            index2 = np.random.choice(self.label_to_indices[label2])
+        anchor_index, positive_index = np.random.choice(self.label_to_indices[label], 2, replace=False)
+        negative_index = np.random.choice(self.label_to_indices[negative_label])
 
-        file_path1 = f"{self.directory}/audio/{self.audio_files[index1]}"
-        file_path2 = f"{self.directory}/audio/{self.audio_files[index2]}"
-        audio1, sr1 = load_audio(file_path1)
-        audio2, sr2 = load_audio(file_path2)
-        audio_features1 = extract_audio_features(audio1, sr1)
-        audio_features2 = extract_audio_features(audio2, sr2)
-        label = 1 if self.audio_labels[index1] == self.audio_labels[index2] else 0
+        anchor_audio, anchor_sr = load_audio(self.audio_files[anchor_index])
+        positive_audio, positive_sr = load_audio(self.audio_files[positive_index])
+        negative_audio, negative_sr = load_audio(self.audio_files[negative_index])
+        anchor_features = extract_audio_features(anchor_audio, anchor_sr)
+        positive_features = extract_audio_features(positive_audio, positive_sr)
+        negative_features = extract_audio_features(negative_audio, negative_sr)
 
-        return audio_features1, audio_features2, label
+        return anchor_features, positive_features, negative_features
     
+    def select_random_label_excluding_current_np(self, image_labels_array: np.ndarray, current_label: int) -> int:
+        #Create a boolean mask to exclude the current label
+        mask = image_labels_array != current_label
 
-def pad_collate_fn(batch: list[tuple[np.ndarray, np.ndarray, str]]):
-    spectrograms1, spectrograms2, labels = zip(*batch)
-    batch_size = len(spectrograms1)
+        #Use np.random.choice to select a random label from the masked array
+        random_label = np.random.choice(image_labels_array[mask])
+        return random_label
+    
+def pad_collate_fn(batch: list[tuple[np.ndarray, np.ndarray, np.ndarray]]):
+    anchor_spectrograms, positive_spectrograms, negative_spectrograms = zip(*batch)
+    batch_size = len(anchor_spectrograms)
 
-    max_length1 = max(spectrogram.shape[0] for spectrogram in spectrograms1)
-    max_length2 = max(spectrogram.shape[0] for spectrogram in spectrograms2)
+    anchor_max_length = max(spectrogram.shape[0] for spectrogram in anchor_spectrograms)
+    positive_max_length = max(spectrogram.shape[0] for spectrogram in positive_spectrograms)
+    negative_max_length = max(spectrogram.shape[0] for spectrogram in negative_spectrograms)
 
     #pad with 0
-    spectrograms_padded1 = torch.zeros(batch_size, max_length1, spectrograms1[0].shape[1])#-1
-    spectrograms_padded2 = torch.zeros(batch_size, max_length2, spectrograms2[0].shape[1])#-1
+    anchor_spectrograms_padded = torch.zeros(batch_size, anchor_max_length, anchor_spectrograms[0].shape[1])#-1
+    positive_spectrograms_padded = torch.zeros(batch_size, positive_max_length, positive_spectrograms[0].shape[1])#-1
+    negative_spectrograms_padded = torch.zeros(batch_size, negative_max_length, negative_spectrograms[0].shape[1])#-1
 
     for i in range(batch_size):
-        spectrogram1 = spectrograms1[i]
-        spectrogram2 = spectrograms2[i]
-        spectrograms_padded1[i, :spectrogram1.shape[0], :] = torch.from_numpy(spectrogram1)
-        spectrograms_padded2[i, :spectrogram2.shape[0], :] = torch.from_numpy(spectrogram2)
+        anchor_spectrogram = anchor_spectrograms[i]
+        positive_spectrogram = positive_spectrograms[i]
+        negative_spectrogram = negative_spectrograms[i]
 
-    torch_labels = torch.tensor(labels).unsqueeze(dim=1)
+        anchor_spectrograms_padded[i, :anchor_spectrogram.shape[0], :] = torch.from_numpy(anchor_spectrogram)
+        positive_spectrograms_padded[i, :positive_spectrogram.shape[0], :] = torch.from_numpy(positive_spectrogram)
+        negative_spectrograms_padded[i, :negative_spectrogram.shape[0], :] = torch.from_numpy(negative_spectrogram)
 
-    return spectrograms_padded1, spectrograms_padded2, torch_labels
+    return anchor_spectrograms_padded, positive_spectrograms_padded, negative_spectrograms_padded
     
 def get_data_loaders(directory: str, batch_size: int = 32, test_split: float = 0.2) -> tuple[DataLoader, DataLoader]:
     dataset = AudioDataset(directory)

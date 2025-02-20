@@ -4,9 +4,9 @@ import numpy as np
 import torch.nn.functional as F
 
 from .utils import load_audio_features, extract_audio_features, load_audio
-from .model import SpeakerIdEmbedding
+from .model import JamburSpeakerId
 
-def get_embedding(audio: np.ndarray, sample_rate: int, model: SpeakerIdEmbedding, device: str) -> torch.Tensor:
+def get_embedding(audio: np.ndarray, sample_rate: int, model: JamburSpeakerId, device: str) -> torch.Tensor:
     model.eval()
     with torch.inference_mode():
         audio_features = extract_audio_features(audio, sample_rate)
@@ -15,21 +15,21 @@ def get_embedding(audio: np.ndarray, sample_rate: int, model: SpeakerIdEmbedding
     return embeddings
 
 #save under ./embeddings/speaker_id/embedding.npy
-def save_new_voice_embedding(speaker_id: str, audio_file: str, save_name: str, model: SpeakerIdEmbedding, device: str):
-    save_path = f"{os.path.dirname(os.path.abspath(__file__))}/embeddings/{speaker_id}"
+def save_new_voice_embedding(speaker_id: str, audio_file: str, save_name: str, model: JamburSpeakerId, device: str):
+    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "embeddings", speaker_id)
 
     os.makedirs(save_path, exist_ok=True)
     audio, sr = load_audio(audio_file)
     embeddings = get_embedding(audio, sr, model, device)
     embeddings_np = embeddings.cpu().numpy()
-    np.save(f"{save_path}/{save_name}.npy", embeddings_np)
+    np.save(os.path.join(save_path, f"{save_name}.npy"), embeddings_np)
 
 def load_voice_embedding(embedding_path: str):
     embedding = torch.from_numpy(np.load(embedding_path))
     return embedding
 
 def get_speaker_id_dirs() -> list:
-    embeddings_path = f"{os.path.dirname(os.path.abspath(__file__))}/embeddings"
+    embeddings_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "embeddings")
     dirs = []
     try:
         with os.scandir(embeddings_path) as entries:
