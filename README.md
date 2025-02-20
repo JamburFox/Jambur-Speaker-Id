@@ -16,15 +16,20 @@ After that we can run the command `python run.py --audio_file ./test.wav` where 
 To use this package within another python project copy the "jambur_speaker_id" folder into the directory of your existing project. Then you can simply import "load_embedding_model" and "run_model_file" or "run_model_audio" from "jambur_speaker_id.model_manager" and use these functions to run the model.
 
 ```python
-from jambur_speaker_id.model_manager import load_embedding_model, run_model_file, run_model_audio #import files
+from jambur_speaker_id.model_manager import load_speaker_id_model, run_model_file, run_model_audio #import files
 
-device = "cpu" # can replace cpu with cuda to run on gpu or any other pytorch supported device
-model = load_embedding_model().to(device) # load model
-speaker_id = run_model_file(model, "./test.wav", device, False) # run model by loading an audio file
+device = "cpu" #can replace cpu with cuda to run on gpu or any other pytorch supported device
+model = load_speaker_id_model().to(device) # load model
 
+#run model by loading an audio file
+speaker_id = run_model_file(model, "./test.wav", device, False)
+print(speaker_id)
+
+#run model by scanning loaded audio directly
 import librosa
-audio, sr = librosa.load("./test.wav", sr=None) # load audio
-speaker_id = run_model_audio(model, audio, sr, device, False) # run model by scanning loaded audio directly
+audio, sr = librosa.load("./test.wav", sr=None) #load audio and sample rate
+speaker_id = run_model_audio(model, audio, sr, device, False)
+print(speaker_id)
 ```
 
 
