@@ -53,6 +53,11 @@ def train_step(data_loader: torch.utils.data.DataLoader, model: JamburSpeakerId,
 
         optimizer.zero_grad()
         loss.backward()
+
+        #clip gradients
+        max_norm = 1.0
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
+
         optimizer.step()
 
         if batch % 1 == 0:
@@ -98,7 +103,17 @@ def triplet_loss(anchor, positive, negative, margin=1.0):
     loss_triplet = torch.mean(F.relu(positive_distance - negative_distance + margin))
     return loss_triplet
 
+import numpy as np#for setting seed
+import random#for setting seed
 if __name__ == "__main__":
+    #torch.manual_seed(42)
+    #torch.cuda.manual_seed(42)
+    #torch.cuda.manual_seed_all(42)
+    #np.random.seed(42)
+    #random.seed(42)
+    #torch.backends.cudnn.deterministic = True
+    #torch.backends.cudnn.benchmark = False
+
     parser = argparse.ArgumentParser(description='Train the speaker id model.')
     parser.add_argument('--dataset', type=str, default=os.path.join(".", "dataset"), help='location of the dataset')
     parser.add_argument('--epochs', type=int, default=100, help='number of epochs')
@@ -117,7 +132,7 @@ if __name__ == "__main__":
 
     print(f"Total Parameters: {count_parameters(model):,}")
 
-    train_loader, test_loader = get_data_loaders(args.dataset, args.batch_size, 0.2)
+    train_loader, test_loader = get_data_loaders(args.dataset, args.batch_size)
     print(f"Train Size: {len(train_loader)} | test Size: {len(test_loader)} | Scheduler Step: {args.scheduler_step}")
 
     torch.cuda.empty_cache()
@@ -125,7 +140,7 @@ if __name__ == "__main__":
     for epoch in range(0, args.epochs):
         train_loss, train_acc = train_step(train_loader, model, optimizer, args.device)
         test_loss, test_acc = test_step(test_loader, model, args.device)
-        print(f"=== Epoch: {epoch+1} / {args.epochs} | Train_loss: {train_loss:.4f} | Train Accuracy: {train_acc*100:.2f}%   | Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}%  | Learning Rate: {scheduler.get_last_lr()[0]:.6f}===")
+        print(f"=== Epoch: {epoch+1} / {args.epochs} | Train_loss: {train_loss:.4f} | Train Accuracy: {train_acc*100:.2f}% | Test Loss: {test_loss:.4f} | Test Accuracy: {test_acc*100:.2f}% | Learning Rate: {scheduler.get_last_lr()[0]:.6f}===")
         
         if test_loss <= best_validation_loss:
             best_validation_loss = test_loss

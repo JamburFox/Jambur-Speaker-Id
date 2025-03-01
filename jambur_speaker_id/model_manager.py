@@ -9,11 +9,12 @@ from .speaker_embedding_manager import get_embedding, scan_embeddings_best_match
 from .utils import load_audio
 
 DEFAULT_INPUT_DIM = 13
-DEFAULT_EMBEDDING_DIM = 256
+DEFAULT_EMBEDDING_DIM = 512
 DEFAULT_ATTENTION_DIM = 16
-DEFAULT_NUM_ATTENTION_HEADS = 4
-DEFAULT_LSTM_HIDDEN_SIZE = 32
-DEFAULT_LSTM_NUM_LAYERS = 2
+DEFAULT_NUM_ATTENTION_HEADS = 2
+DEFAULT_INITIAL_CNN_SIZE = 8
+DEFAULT_HIDDEN_DIM = 32
+
 SAVE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 DEFAULT_MODEL_PATH = os.path.join(SAVE_PATH, "jambur_speaker_id.pt")
 
@@ -44,10 +45,10 @@ def load_speaker_id_model(file_path: str = DEFAULT_MODEL_PATH) -> JamburSpeakerI
     embedding_dim = data.get('embedding_dim', DEFAULT_EMBEDDING_DIM)
     attention_dim = data.get('attention_dim', DEFAULT_ATTENTION_DIM)
     num_attention_heads = data.get('num_attention_heads', DEFAULT_NUM_ATTENTION_HEADS)
-    lstm_hidden_size = data.get('lstm_hidden_size', DEFAULT_LSTM_HIDDEN_SIZE)
-    lstm_num_layers = data.get('lstm_num_layers', DEFAULT_LSTM_NUM_LAYERS)
+    initial_cnn_size = data.get('initial_cnn_size', DEFAULT_INITIAL_CNN_SIZE)
+    hidden_dim = data.get('hidden_dim', DEFAULT_HIDDEN_DIM)
 
-    model = JamburSpeakerId(input_dim, embedding_dim, attention_dim, num_attention_heads, lstm_hidden_size, lstm_num_layers)
+    model = JamburSpeakerId(input_dim, embedding_dim, attention_dim, num_attention_heads, initial_cnn_size, hidden_dim)
     if file_path is not None:
         try:
             model.load_state_dict(torch.load(f=file_path))
@@ -68,8 +69,8 @@ def save_speaker_id_model(model: JamburSpeakerId, save_path: str = DEFAULT_MODEL
             "embedding_dim": model.embedding_dim,
             "attention_dim": model.attention_dim,
             "num_attention_heads": model.num_attention_heads,
-            "lstm_hidden_size": model.lstm_hidden_size,
-            "lstm_num_layers": model.lstm_num_layers
+            "initial_cnn_size": model.initial_cnn_size,
+            "hidden_dim": model.hidden_dim,
         }
         (file_name, _) = os.path.splitext(os.path.basename(save_path))
         with open(os.path.join(os.path.dirname(save_path), f'{file_name}.json'), 'w') as file:

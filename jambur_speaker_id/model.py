@@ -46,62 +46,70 @@ class PositionwiseFeedForward(nn.Module):
         return self.fc2(F.relu(self.fc1(x)))
 
 class JamburSpeakerId(nn.Module):
-    def __init__(self, input_dim: int, embedding_dim: int, attention_dim: int, num_attention_heads: int, lstm_hidden_size: int, lstm_num_layers: int):
+    def __init__(self, input_dim: int, embedding_dim: int, attention_dim: int, num_attention_heads: int, initial_cnn_size: int, hidden_dim: int):
         super().__init__()
         self.input_dim = input_dim
         self.embedding_dim = embedding_dim
         self.attention_dim = attention_dim
         self.num_attention_heads = num_attention_heads
-        self.lstm_hidden_size = lstm_hidden_size
-        self.lstm_num_layers = lstm_num_layers
+        self.initial_cnn_size = initial_cnn_size
+        self.hidden_dim = hidden_dim
 
         self.cnn_network = nn.Sequential(
-            nn.Conv2d(in_channels=input_dim, out_channels=16, kernel_size=(3,3), stride=1, padding=(1,1)),
-            nn.BatchNorm2d(16),
+            nn.Conv2d(in_channels=1, out_channels=initial_cnn_size, kernel_size=(3,3), stride=1, padding=(1,1)),
+            nn.BatchNorm2d(initial_cnn_size),
             nn.ReLU(),
+            #nn.MaxPool2d(kernel_size=(1,2), stride=(1,2)),#[bins,seq/2]
 
-            nn.Conv2d(in_channels=16, out_channels=32, kernel_size=(3,3), stride=1, padding=(1,1)),
-            nn.BatchNorm2d(32),
+            nn.Conv2d(in_channels=initial_cnn_size, out_channels=initial_cnn_size*2, kernel_size=(3,3), stride=1, padding=(1,1)),
+            nn.BatchNorm2d(initial_cnn_size*2),
             nn.ReLU(),
+            #nn.MaxPool2d(kernel_size=(1,2), stride=(1,2)),#[bins,seq/4]
 
-            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=(3,3), stride=1, padding=(1,1)),
-            nn.BatchNorm2d(64),
+            nn.Conv2d(in_channels=initial_cnn_size*2, out_channels=initial_cnn_size*4, kernel_size=(3,3), stride=1, padding=(1,1)),
+            nn.BatchNorm2d(initial_cnn_size*4),
+            nn.ReLU(),
+            #nn.MaxPool2d(kernel_size=(2,2), stride=(2,2)),#[bins/2,seq/8]
+        )
+
+        self.cnn_dense = nn.Sequential(
+            nn.Linear(input_dim*initial_cnn_size*4, self.hidden_dim),
             nn.ReLU(),
         )
 
-        self.attention = MultiHeadAttention(64, attention_dim, num_attention_heads)
-        self.attention_norm = nn.LayerNorm(64)
+        self.attention = MultiHeadAttention(self.hidden_dim, attention_dim, num_attention_heads)
+        self.attention_norm = nn.LayerNorm(self.hidden_dim)
 
-        self.feed_forward = PositionwiseFeedForward(64, 256)
-        self.feed_forward_norm = nn.LayerNorm(64)
-
-        self.lstm = nn.LSTM(input_size=64, hidden_size=lstm_hidden_size, num_layers=lstm_num_layers, batch_first=True, bidirectional=True, dropout=0.2)
+        self.feed_forward = PositionwiseFeedForward(self.hidden_dim, self.hidden_dim*4)
+        self.feed_forward_norm = nn.LayerNorm(self.hidden_dim)
 
         self.fc = nn.Sequential(
-            nn.Linear(lstm_hidden_size*2, 128),
+            nn.Linear(self.hidden_dim, 128),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(128, embedding_dim),
-            nn.ReLU(),
+            nn.Linear(128, embedding_dim)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         #cnn network
-        x = x.permute(0, 2, 1).unsqueeze(-1)
+        x = x.permute(0, 2, 1).unsqueeze(1)
         x = self.cnn_network(x)
-        x = x.squeeze(dim=3).permute(0, 2, 1)#[batch, seq, hidden_size]
+        x = x.permute(0, 3, 1, 2).flatten(-2)#[batch, seq, channels*mels]
+
+        #cnn dense
+        x = self.cnn_dense(x)#[batch, seq, hidden_size]
 
         #attention
-        attended_x = self.attention(x)#[batch, seq, input_dim]
+        attended_x = self.attention(x)#[batch, seq, hidden_size]
         attended_x = self.attention_norm(attended_x + x)#residual connection
         
         #position-wise feed forward
         ffn_x = self.feed_forward(attended_x)
-        ffn_x = self.feed_forward_norm(ffn_x + attended_x)#Residual connection
+        ffn_x = self.feed_forward_norm(ffn_x + attended_x)#Residual connection #[batch, seq, dim]
 
-        #LSTM
-        lstm_out, _ = self.lstm(ffn_x)#[batch, seq, hidden_size*2] due to bidirectional: hidden_size * 2
-        lstm_out = lstm_out[:, -1, :]#[batch, hidden_size*2] Use the last LSTM output #[1, hidden_size*2]
+        #global average pooling across the sequence dimension
+        pooled_x = torch.mean(ffn_x, dim=1)  # [batch, 64]
 
-        embeddings = self.fc(lstm_out)
+        embeddings = self.fc(pooled_x)
+        embeddings = nn.functional.normalize(embeddings, p=2, dim=1)
         return embeddings

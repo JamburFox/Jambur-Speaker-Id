@@ -71,13 +71,19 @@ def scan_embeddings_best_match(match_embedding: torch.Tensor, log_output: bool=F
         if log_output:
             print(f"==={dir.name}===")
         files = get_speaker_id_files(dir.path)
+        
+        average_score = 0
         for file in files:
             embedding = load_voice_embedding(file.path)
             diff = compare_embeddings_cosine(match_embedding, embedding)
+            average_score += diff
             if log_output:
                 print("-", file.name, "|", diff)
 
             if best_speaker_id == None or diff > best_score:#<= if using compare_embeddings
                 best_score = diff
                 best_speaker_id = dir.name
+        average_score /= len(files)
+        print("avg", average_score)
+        
     return best_speaker_id

@@ -7,7 +7,7 @@ import os
 from jambur_speaker_id.utils import load_audio, extract_audio_features
 
 class AudioDataset(Dataset):
-    def __init__(self, directory: str):
+    def __init__(self, directory: str, speakers_file_name: str):
         self.directory = directory
         self.audio_files = []
         self.audio_labels = []
@@ -16,7 +16,7 @@ class AudioDataset(Dataset):
         self.unique_labels = []
 
         print("Loading Dataset...", end="\r")
-        with open(os.path.join(directory, "speakers.csv"), newline='') as file:
+        with open(os.path.join(directory, f"{speakers_file_name}.csv"), newline='') as file:
             reader = csv.reader(file, delimiter=',')
             for i, row in enumerate(reader):
                 print(f"Loading Dataset... ({i})", end="\r")
@@ -73,10 +73,10 @@ def pad_collate_fn(batch: list[tuple[np.ndarray, np.ndarray, np.ndarray]]):
     positive_max_length = max(spectrogram.shape[0] for spectrogram in positive_spectrograms)
     negative_max_length = max(spectrogram.shape[0] for spectrogram in negative_spectrograms)
 
-    #pad with 0
-    anchor_spectrograms_padded = torch.zeros(batch_size, anchor_max_length, anchor_spectrograms[0].shape[1])#-1
-    positive_spectrograms_padded = torch.zeros(batch_size, positive_max_length, positive_spectrograms[0].shape[1])#-1
-    negative_spectrograms_padded = torch.zeros(batch_size, negative_max_length, negative_spectrograms[0].shape[1])#-1
+    #pad with -1
+    anchor_spectrograms_padded = torch.zeros(batch_size, anchor_max_length, anchor_spectrograms[0].shape[1])-1
+    positive_spectrograms_padded = torch.zeros(batch_size, positive_max_length, positive_spectrograms[0].shape[1])-1
+    negative_spectrograms_padded = torch.zeros(batch_size, negative_max_length, negative_spectrograms[0].shape[1])-1
 
     for i in range(batch_size):
         anchor_spectrogram = anchor_spectrograms[i]
@@ -89,13 +89,9 @@ def pad_collate_fn(batch: list[tuple[np.ndarray, np.ndarray, np.ndarray]]):
 
     return anchor_spectrograms_padded, positive_spectrograms_padded, negative_spectrograms_padded
     
-def get_data_loaders(directory: str, batch_size: int = 32, test_split: float = 0.2) -> tuple[DataLoader, DataLoader]:
-    dataset = AudioDataset(directory)
-
-    test_size = int(len(dataset) * test_split)
-    train_size = len(dataset) - test_size
-
-    train_dataset, test_dataset = random_split(dataset, [train_size, test_size])
+def get_data_loaders(directory: str, batch_size: int = 32) -> tuple[DataLoader, DataLoader]:
+    train_dataset = AudioDataset(directory, "train")
+    test_dataset = AudioDataset(directory, "test")
 
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=pad_collate_fn)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=pad_collate_fn)
